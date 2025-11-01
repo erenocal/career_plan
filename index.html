@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Career Plan Kanban Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Main board container */
+        .kanban-board {
+            display: flex;
+            gap: 1.5rem; /* 24px */
+            padding: 1.5rem;
+            overflow-x: auto;
+            min-height: calc(100vh - 100px);
+        }
+        /* Status Column (To Do, In Progress, Done) */
+        .kanban-status-column {
+            flex: 0 0 340px; /* Fixed width for columns */
+            background-color: #f4f5f7; /* Atlassian-like grey */
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .kanban-column-header {
+            padding: 1rem;
+            border-bottom: 2px solid #dfe1e6;
+        }
+        .kanban-column-title {
+            font-size: 0.875rem; /* 14px */
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #5E6C84; /* Atlassian-like text */
+            text-align: center;
+        }
+        /* Epic Swimlane (Phase 1, 2, 3) */
+        .epic-swimlane {
+            padding: 1rem;
+            border-bottom: 1px solid #dfe1e6;
+        }
+        .epic-swimlane:last-child {
+            border-bottom: none;
+        }
+        .epic-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #172B4D;
+            margin-bottom: 1rem;
+        }
+        /* Container for cards */
+        .kanban-cards-container {
+            min-height: 80px; /* Min height for drop target */
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        /* Card styles */
+        .kanban-card {
+            background-color: #ffffff;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        .kanban-card:last-child {
+            margin-bottom: 0;
+        }
+        .kanban-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .kanban-card.dragging {
+            opacity: 0.5;
+            transform: rotate(3deg);
+        }
+        .card-title {
+            font-weight: 600;
+            color: #172B4D;
+            margin-bottom: 0.5rem;
+        }
+        .card-meta {
+            font-size: 0.75rem;
+            color: #5E6C84;
+        }
+        .card-meta div {
+            margin-bottom: 0.25rem;
+        }
+        .card-deps {
+            font-size: 0.75rem;
+            color: #B34040; /* Red for dependencies */
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        /* Dragging over style */
+        .kanban-cards-container.drag-over {
+            background-color: #e6e9ed;
+            border: 2px dashed #a0aec0;
+        }
+
+        /* Modal */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #172B4D;
+        }
+        .close-button {
+            font-size: 2rem;
+            font-weight: 300;
+            color: #5E6C84;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close-button:hover {
+            color: #172B4D;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">My Career Plan Kanban Board</h1>
+                    <p class="text-gray-600">Drag cards horizontally to change status, or vertically to change phase.</p>
+                </div>
+                <button id="add-task-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition shadow-sm">
+                    + Add Task
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Kanban Board -->
+    <main id="kanban-board" class="kanban-board">
+        <!-- Status Columns will be dynamically generated here -->
+    </main>
+
+    <!-- Modal for Card Details -->
+    <div id="cardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">Task Details</h2>
+                <span class="close-button" id="modalClose">&times;</span>
+            </div>
+            <form id="task-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Title</label>
+                    <input type="text" id="modal-title-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Status</label>
+                    <select id="modal-status-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                        <option value="To Do">To Do</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Done">Done</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Epic</label>
+                    <input type="text" id="modal-epic-input" list="epic-datalist" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                    <datalist id="epic-datalist">
+                    </datalist>
+                    <p class="mt-1 text-xs text-gray-500">Type to create a new epic or select from existing ones</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Start Date</label>
+                        <input type="date" id="modal-start-date-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Due Date</label>
+                        <input type="date" id="modal-due-date-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Details</label>
+                    <textarea id="modal-details-input" rows="4" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Dependencies</label>
+                    <select id="modal-dependencies-select" multiple class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" style="min-height: 100px;">
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Hold Ctrl/Cmd to select multiple tasks</p>
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button type="submit" id="modal-save-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition">Save</button>
+                    <button type="button" id="modal-delete-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition" style="display: none;">Delete</button>
+                    <button type="button" id="modal-cancel-btn" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md transition">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- localStorage Key ---
+        const STORAGE_KEY = 'career-plan-tasks';
+
+        // --- localStorage Functions ---
+        function saveTasksToStorage(tasksArray) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(tasksArray));
+            } catch (e) {
+                console.error('Error saving to localStorage:', e);
+            }
+        }
+
+        function loadTasksFromStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error('Error loading from localStorage:', e);
+            }
+            return null;
+        }
+
+        // --- Default Data ---
+        const today = new Date('2025-11-01T12:00:00Z');
+
+        const defaultTasks = [
+            // --- Phase 1: The "Full-Stack" Analyst Foundation (6-9 Months) ---
+            { 
+                id: 'p1-pandas', 
+                epic: 'Phase 1: Analyst Foundation',
+                title: 'Master Python (Pandas)', 
+                details: 'Complete hands-on course (Kaggle, Datacamp) focused on data wrangling, cleaning, and analysis with Pandas.',
+                status: 'To Do',
+                startDate: formatDate(today),
+                dueDate: formatDate(addDays(today, 90)), // 3 months
+                dependencies: []
+            },
+            { 
+                id: 'p1-tableau',
+                epic: 'Phase 1: Analyst Foundation',
+                title: 'Master Visualization (Tableau)',
+                details: 'Using Tableau Public, re-create an existing Looker Studio dashboard from scratch.',
+                status: 'To Do',
+                startDate: formatDate(today),
+                dueDate: formatDate(addDays(today, 60)), // 2 months
+                dependencies: []
+            },
+            { 
+                id: 'p1-agtech-proj',
+                epic: 'Phase 1: Analyst Foundation',
+                title: 'Build Agtech Portfolio Project (New Stack)',
+                details: 'Analyze public ag-dataset using Pandas and build the final dashboard in Tableau.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 90)), // After mastering Pandas
+                dueDate: formatDate(addDays(today, 150)), // 2 months to complete
+                dependencies: ['p1-pandas', 'p1-tableau']
+            },
+            { 
+                id: 'p1-community-proj',
+                epic: 'Phase 1: Analyst Foundation',
+                title: 'Build Community Portfolio Project (Current Stack)',
+                details: 'Create a professional-grade "Needs Assessment" dashboard using your current BigQuery/Looker stack.',
+                status: 'To Do',
+                startDate: formatDate(today),
+                dueDate: formatDate(addDays(today, 90)), // 3 months
+                dependencies: []
+            },
+            { 
+                id: 'p1-leap-fund',
+                epic: 'Phase 1: Analyst Foundation',
+                title: 'Establish "Leap Fund"',
+                details: 'Set up an automatic monthly transfer to a dedicated high-yield savings account for a 6-12 month cushion.',
+                status: 'To Do',
+                startDate: formatDate(today),
+                dueDate: formatDate(addDays(today, 270)), // 9-month goal
+                dependencies: []
+            },
+
+            // --- Phase 2: The "AI-Facilitator" Bridge (1-2 Years) ---
+            { 
+                id: 'p2-model-strategy',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Deepen Predictive Model Strategy',
+                details: 'Learn when to apply Regression, Classification, and Clustering models based on the business problem.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 270)), // Start of Phase 2
+                dueDate: formatDate(addDays(today, 360)), // ~3 months
+                dependencies: ['p1-agtech-proj', 'p1-community-proj']
+            },
+            { 
+                id: 'p2-model-eval',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Master Model Evaluation',
+                details: 'Learn to interpret RMSE, R-squared, Confusion Matrix, Precision/Recall, and Silhouette Scores.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 270)), // Start of Phase 2
+                dueDate: formatDate(addDays(today, 360)), // ~3 months
+                dependencies: ['p2-model-strategy']
+            },
+            { 
+                id: 'p2-memo-action',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Action: Write Precision vs. Recall Memo',
+                details: 'Write a short memo for your agtech project explaining whether to optimize for Precision or Recall.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 360)), // After learning eval
+                dueDate: formatDate(addDays(today, 374)), // 2 weeks
+                dependencies: ['p2-model-eval']
+            },
+            { 
+                id: 'p2-adv-ml',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Understand Advanced ML Concepts (LLMs & Fine-Tuning)',
+                details: 'Learn conceptual basics of transformers, embeddings, and fine-tuning vs. RAG.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 300)), // Concurrent with other P2 tasks
+                dueDate: formatDate(addDays(today, 420)), // ~4 months
+                dependencies: []
+            },
+            { 
+                id: 'p2-ml-lifecycle',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Master ML Lifecycle (Conceptual)',
+                details: 'Complete "AI for Everyone" or a Coursera ML specialization. Understand Feature Engineering and MLOps.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 270)), // Start of Phase 2
+                dueDate: formatDate(addDays(today, 360)), // ~3 months
+                dependencies: []
+            },
+            { 
+                id: 'p2-resume',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Rebrand Your Resume',
+                details: 'Create a \'Key Projects\' section on resume/LinkedIn using Problem-Action-Result framework.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 450)), // ~15 months in, after P1 projects are done
+                dueDate: formatDate(addDays(today, 480)), // 1 month
+                dependencies: ['p1-agtech-proj', 'p1-community-proj', 'p2-memo-action']
+            },
+            { 
+                id: 'p2-network',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Build Your Network',
+                details: 'Schedule 1-2 virtual coffees/month with people in your target domain. Identify their challenges and metrics.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 270)), // Start of Phase 2, ongoing
+                dueDate: formatDate(addDays(today, 630)), // Ongoing for 1 year
+                dependencies: []
+            },
+            { 
+                id: 'p2-bridge-job',
+                epic: 'Phase 2: AI-Facilitator Bridge',
+                title: 'Land the "Bridge Job"',
+                details: 'Secure a tech/data/AI role inside a mission-driven organization to learn the domain.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 480)), // After resume rebrand
+                dueDate: formatDate(addDays(today, 660)), // 6-month search window
+                dependencies: ['p2-resume', 'p2-network']
+            },
+
+            // --- Phase 3: The "Impact Lead" Leap (2-4+ Years) ---
+            { 
+                id: 'p3-domain-mastery',
+                epic: 'Phase 3: Impact Lead Leap',
+                title: 'Achieve Domain Mastery',
+                details: 'In your "Bridge Job," volunteer for in-field ops, attend policy meetings, shadow program directors.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 660)), // After landing Bridge Job
+                dueDate: formatDate(addDays(today, 1020)), // Ongoing for 1 year
+                dependencies: ['p2-bridge-job']
+            },
+            { 
+                id: 'p3-proactive-task',
+                epic: 'Phase 3: Impact Lead Leap',
+                title: 'Proactive Task: Write Internal Proposal',
+                details: 'Write a 2-page proposal on how your data/AI skills can improve a specific domain challenge.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 840)), // ~6 months into Bridge Job
+                dueDate: formatDate(addDays(today, 854)), // 2 weeks
+                dependencies: ['p3-domain-mastery']
+            },
+            { 
+                id: 'p3-full-send',
+                epic: 'Phase 3: Impact Lead Leap',
+                title: 'Make the "Full Send" Transition',
+                details: 'Execute final career move via internal promotion or external application to a Program Director/Policy Lead role.',
+                status: 'To Do',
+                startDate: formatDate(addDays(today, 1020)), // After ~1 year in Bridge Job
+                dueDate: formatDate(addDays(today, 1200)), // 6-month window
+                dependencies: ['p3-proactive-task']
+            }
+        ];
+
+        // --- Initialize Tasks ---
+        let tasks = loadTasksFromStorage();
+        if (!tasks || tasks.length === 0) {
+            tasks = defaultTasks;
+            saveTasksToStorage(tasks);
+        }
+
+        // --- Utility Functions ---
+        function addDays(date, days) {
+            const result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return result;
+        }
+
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        // --- Helper Functions ---
+        function getTaskTitleById(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            return task ? task.title : taskId;
+        }
+
+        // --- App Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = document.getElementById('kanban-board');
+            const modal = document.getElementById('cardModal');
+            const modalClose = document.getElementById('modalClose');
+            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+            const modalDeleteBtn = document.getElementById('modal-delete-btn');
+            const modalSaveBtn = document.getElementById('modal-save-btn');
+            const taskForm = document.getElementById('task-form');
+            const modalTitleInput = document.getElementById('modal-title-input');
+            const modalStatusSelect = document.getElementById('modal-status-select');
+            const modalEpicInput = document.getElementById('modal-epic-input');
+            const epicDatalist = document.getElementById('epic-datalist');
+            const modalStartDateInput = document.getElementById('modal-start-date-input');
+            const modalDueDateInput = document.getElementById('modal-due-date-input');
+            const modalDetailsInput = document.getElementById('modal-details-input');
+            const modalDependenciesSelect = document.getElementById('modal-dependencies-select');
+            let currentCard = null; // Store the card being edited in the modal
+            let draggedCard = null; // Store the card being dragged
+            let isCreatingNew = false; // Track if we're creating a new task
+
+            const statuses = ['To Do', 'In Progress', 'Done'];
+            
+            // Get epics dynamically
+            function getEpics() {
+                return [...new Set(tasks.map(task => task.epic))];
+            }
+            
+            // Render the board
+            function renderBoard() {
+                board.innerHTML = ''; // Clear board
+                const epics = getEpics();
+                
+                statuses.forEach(status => {
+                    const column = document.createElement('div');
+                    column.className = 'kanban-status-column';
+                    column.dataset.status = status;
+
+                    let swimlanesHtml = '';
+                    epics.forEach(epic => {
+                        const tasksInEpicAndStatus = tasks.filter(task => task.epic === epic && task.status === status);
+                        
+                        swimlanesHtml += `
+                            <div class="epic-swimlane" data-epic="${epic}">
+                                <h3 class="epic-title">${epic}</h3>
+                                <div class="kanban-cards-container" data-epic="${epic}" data-status="${status}">
+                                    ${tasksInEpicAndStatus.map(task => createTaskCard(task)).join('')}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    column.innerHTML = `
+                        <div class="kanban-column-header">
+                            <h2 class="kanban-column-title">${status}</h2>
+                        </div>
+                        <div class="kanban-swimlanes-container">
+                            ${swimlanesHtml}
+                        </div>
+                    `;
+                    board.appendChild(column);
+                });
+
+                addDragListeners();
+                addCardClickListeners();
+            }
+
+            // Create HTML for a single card
+            function createTaskCard(task) {
+                const depTitles = task.dependencies.map(id => getTaskTitleById(id));
+                const depHtml = depTitles.length > 0 
+                    ? `<div class="card-deps">Blocks: ${depTitles.join(', ')}</div>` 
+                    : '';
+
+                return `
+                    <div class="kanban-card" draggable="true" data-id="${task.id}">
+                        <div class="card-title">${task.title}</div>
+                        <div class="card-meta">
+                            <div><strong>Start:</strong> ${task.startDate}</div>
+                            <div><strong>Due:</strong> ${task.dueDate}</div>
+                        </div>
+                        ${depHtml}
+                    </div>
+                `;
+            }
+
+            // --- Drag and Drop Logic ---
+            function addDragListeners() {
+                const cards = document.querySelectorAll('.kanban-card');
+                const containers = document.querySelectorAll('.kanban-cards-container');
+
+                cards.forEach(card => {
+                    card.addEventListener('dragstart', () => {
+                        draggedCard = card;
+                        setTimeout(() => card.classList.add('dragging'), 0);
+                    });
+
+                    card.addEventListener('dragend', () => {
+                        if (draggedCard) {
+                            draggedCard.classList.remove('dragging');
+                        }
+                        draggedCard = null;
+                    });
+                });
+
+                containers.forEach(container => {
+                    container.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        container.classList.add('drag-over');
+                    });
+
+                    container.addEventListener('dragleave', () => {
+                        container.classList.remove('drag-over');
+                    });
+
+                    container.addEventListener('drop', e => {
+                        e.preventDefault();
+                        container.classList.remove('drag-over');
+                        if (draggedCard) {
+                            // Find the task data
+                            const taskId = draggedCard.dataset.id;
+                            const task = tasks.find(t => t.id === taskId);
+                            
+                            if (task) {
+                                // Get new status and epic from the drop target
+                                const newStatus = container.dataset.status;
+                                const newEpic = container.dataset.epic;
+                                
+                                // Update the task data
+                                task.status = newStatus;
+                                task.epic = newEpic;
+                                
+                                // Save to localStorage
+                                saveTasksToStorage(tasks);
+                                
+                                // Re-render the entire board to reflect the change
+                                renderBoard();
+                            }
+                        }
+                    });
+                });
+            }
+
+            // --- Modal Logic ---
+            function addCardClickListeners() {
+                document.querySelectorAll('.kanban-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const taskId = card.dataset.id;
+                        currentCard = tasks.find(t => t.id === taskId);
+                        if (currentCard) {
+                            isCreatingNew = false;
+                            openModal(currentCard);
+                        }
+                    });
+                });
+            }
+
+            function populateEpicDatalist() {
+                const epics = getEpics();
+                epicDatalist.innerHTML = '';
+                epics.forEach(epic => {
+                    const option = document.createElement('option');
+                    option.value = epic;
+                    epicDatalist.appendChild(option);
+                });
+            }
+
+            function populateDependenciesDropdown(excludeTaskId = null) {
+                modalDependenciesSelect.innerHTML = '';
+                tasks.forEach(task => {
+                    if (task.id === excludeTaskId) return; // Don't allow self-dependency
+                    const option = document.createElement('option');
+                    option.value = task.id;
+                    option.textContent = task.title;
+                    modalDependenciesSelect.appendChild(option);
+                });
+            }
+
+            function openModal(task = null) {
+                populateEpicDatalist();
+                
+                if (task) {
+                    // Edit existing task
+                    isCreatingNew = false;
+                    currentCard = task;
+                    document.getElementById('modal-title').textContent = 'Edit Task';
+                    modalTitleInput.value = task.title;
+                    modalStatusSelect.value = task.status;
+                    modalEpicInput.value = task.epic;
+                    modalStartDateInput.value = task.startDate;
+                    modalDueDateInput.value = task.dueDate;
+                    modalDetailsInput.value = task.details;
+                    
+                    populateDependenciesDropdown(task.id);
+                    // Select current dependencies
+                    Array.from(modalDependenciesSelect.options).forEach(option => {
+                        option.selected = task.dependencies.includes(option.value);
+                    });
+                    
+                    modalDeleteBtn.style.display = 'block';
+                } else {
+                    // Create new task
+                    isCreatingNew = true;
+                    currentCard = null;
+                    document.getElementById('modal-title').textContent = 'Create New Task';
+                    modalTitleInput.value = '';
+                    modalStatusSelect.value = 'To Do';
+                    modalEpicInput.value = '';
+                    modalStartDateInput.value = '';
+                    modalDueDateInput.value = '';
+                    modalDetailsInput.value = '';
+                    
+                    populateDependenciesDropdown();
+                    Array.from(modalDependenciesSelect.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    
+                    modalDeleteBtn.style.display = 'none';
+                }
+                
+                modal.style.display = 'flex';
+            }
+
+            function closeModal() {
+                modal.style.display = 'none';
+                currentCard = null;
+                isCreatingNew = false;
+                taskForm.reset();
+            }
+
+            function generateTaskId() {
+                let counter = 1;
+                let newId;
+                do {
+                    newId = `task-${Date.now()}-${counter}`;
+                    counter++;
+                } while (tasks.find(t => t.id === newId));
+                return newId;
+            }
+
+            // Form submission handler
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const title = modalTitleInput.value.trim();
+                if (!title) {
+                    alert('Title is required');
+                    return;
+                }
+                
+                const selectedDependencies = Array.from(modalDependenciesSelect.selectedOptions).map(opt => opt.value);
+                
+                const epic = modalEpicInput.value.trim();
+                if (!epic) {
+                    alert('Epic is required');
+                    return;
+                }
+                
+                if (isCreatingNew) {
+                    // Create new task
+                    const newTask = {
+                        id: generateTaskId(),
+                        title: title,
+                        epic: epic,
+                        status: modalStatusSelect.value,
+                        startDate: modalStartDateInput.value,
+                        dueDate: modalDueDateInput.value,
+                        details: modalDetailsInput.value,
+                        dependencies: selectedDependencies
+                    };
+                    tasks.push(newTask);
+                } else if (currentCard) {
+                    // Update existing task
+                    currentCard.title = title;
+                    currentCard.epic = epic;
+                    currentCard.status = modalStatusSelect.value;
+                    currentCard.startDate = modalStartDateInput.value;
+                    currentCard.dueDate = modalDueDateInput.value;
+                    currentCard.details = modalDetailsInput.value;
+                    currentCard.dependencies = selectedDependencies;
+                }
+                
+                saveTasksToStorage(tasks);
+                renderBoard();
+                closeModal();
+            });
+
+            // Delete handler
+            modalDeleteBtn.addEventListener('click', () => {
+                if (currentCard && confirm(`Are you sure you want to delete "${currentCard.title}"?`)) {
+                    // Remove task ID from all dependency arrays
+                    tasks.forEach(task => {
+                        const index = task.dependencies.indexOf(currentCard.id);
+                        if (index > -1) {
+                            task.dependencies.splice(index, 1);
+                        }
+                    });
+                    
+                    // Remove the task
+                    const index = tasks.indexOf(currentCard);
+                    if (index > -1) {
+                        tasks.splice(index, 1);
+                    }
+                    
+                    saveTasksToStorage(tasks);
+                    renderBoard();
+                    closeModal();
+                }
+            });
+
+            // Add Task button handler
+            const addTaskBtn = document.getElementById('add-task-btn');
+            addTaskBtn.addEventListener('click', () => {
+                openModal(null); // Open modal for new task
+            });
+
+            modalClose.onclick = closeModal;
+            modalCancelBtn.onclick = closeModal;
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    closeModal();
+                }
+            }
+            
+            // Initial Render
+            renderBoard();
+        });
+    </script>
+</body>
+</html>
+
