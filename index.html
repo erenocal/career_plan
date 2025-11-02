@@ -10,6 +10,13 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        
+        /* Dark mode base */
+        body.dark-mode {
+            background-color: #1a1a1a;
+            color: #e5e5e5;
+        }
+        
         /* Main board container */
         .kanban-board {
             display: flex;
@@ -18,6 +25,11 @@
             overflow-x: auto;
             min-height: calc(100vh - 100px);
         }
+        
+        body.dark-mode .kanban-board {
+            background-color: #1a1a1a;
+        }
+        
         /* Status Column (To Do, In Progress, Done) */
         .kanban-status-column {
             flex: 0 0 340px; /* Fixed width for columns */
@@ -25,10 +37,21 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
+        
+        body.dark-mode .kanban-status-column {
+            background-color: #2d2d2d;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
         .kanban-column-header {
             padding: 1rem;
             border-bottom: 2px solid #dfe1e6;
         }
+        
+        body.dark-mode .kanban-column-header {
+            border-bottom: 2px solid #404040;
+        }
+        
         .kanban-column-title {
             font-size: 0.875rem; /* 14px */
             font-weight: 600;
@@ -36,26 +59,43 @@
             color: #5E6C84; /* Atlassian-like text */
             text-align: center;
         }
+        
+        body.dark-mode .kanban-column-title {
+            color: #a0a0a0;
+        }
+        
         /* Epic Swimlane (Phase 1, 2, 3) */
         .epic-swimlane {
             padding: 1rem;
             border-bottom: 1px solid #dfe1e6;
         }
+        
+        body.dark-mode .epic-swimlane {
+            border-bottom: 1px solid #404040;
+        }
+        
         .epic-swimlane:last-child {
             border-bottom: none;
         }
+        
         .epic-title {
             font-size: 0.875rem;
             font-weight: 600;
             color: #172B4D;
             margin-bottom: 1rem;
         }
+        
+        body.dark-mode .epic-title {
+            color: #e5e5e5;
+        }
+        
         /* Container for cards */
         .kanban-cards-container {
             min-height: 80px; /* Min height for drop target */
             border-radius: 6px;
             transition: all 0.2s ease;
         }
+        
         /* Card styles */
         .kanban-card {
             background-color: #ffffff;
@@ -66,39 +106,84 @@
             cursor: grab;
             transition: all 0.2s ease;
         }
+        
+        body.dark-mode .kanban-card {
+            background-color: #3a3a3a;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
         .kanban-card:last-child {
             margin-bottom: 0;
         }
+        
         .kanban-card:hover {
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             transform: translateY(-2px);
         }
+        
+        body.dark-mode .kanban-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        
         .kanban-card.dragging {
             opacity: 0.5;
             transform: rotate(3deg);
         }
+        
         .card-title {
             font-weight: 600;
             color: #172B4D;
             margin-bottom: 0.5rem;
         }
+        
+        body.dark-mode .card-title {
+            color: #e5e5e5;
+        }
+        
         .card-meta {
             font-size: 0.75rem;
             color: #5E6C84;
         }
+        
+        body.dark-mode .card-meta {
+            color: #a0a0a0;
+        }
+        
         .card-meta div {
             margin-bottom: 0.25rem;
         }
+        
         .card-deps {
             font-size: 0.75rem;
             color: #B34040; /* Red for dependencies */
             font-weight: 500;
             margin-top: 0.5rem;
         }
+        
+        body.dark-mode .card-deps {
+            color: #ff6b6b;
+        }
+        
+        .card-id {
+            font-size: 0.7rem;
+            color: #5E6C84;
+            margin-bottom: 0.25rem;
+            font-family: monospace;
+        }
+        
+        body.dark-mode .card-id {
+            color: #a0a0a0;
+        }
+        
         /* Dragging over style */
         .kanban-cards-container.drag-over {
             background-color: #e6e9ed;
             border: 2px dashed #a0aec0;
+        }
+        
+        body.dark-mode .kanban-cards-container.drag-over {
+            background-color: #404040;
+            border: 2px dashed #6b6b6b;
         }
 
         /* Modal */
@@ -115,6 +200,11 @@
             justify-content: center;
             align-items: center;
         }
+        
+        body.dark-mode .modal {
+            background-color: rgba(0,0,0,0.8);
+        }
+        
         .modal-content {
             background-color: #fefefe;
             margin: auto;
@@ -124,17 +214,29 @@
             max-width: 600px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
+        
+        body.dark-mode .modal-content {
+            background-color: #2d2d2d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
         }
+        
         .modal-title {
             font-size: 1.5rem;
             font-weight: 600;
             color: #172B4D;
         }
+        
+        body.dark-mode .modal-title {
+            color: #e5e5e5;
+        }
+        
         .close-button {
             font-size: 2rem;
             font-weight: 300;
@@ -142,20 +244,29 @@
             cursor: pointer;
             line-height: 1;
         }
+        
         .close-button:hover {
             color: #172B4D;
         }
+        
+        body.dark-mode .close-button {
+            color: #a0a0a0;
+        }
+        
+        body.dark-mode .close-button:hover {
+            color: #e5e5e5;
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="dark-mode">
 
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
+    <header class="bg-gray-800 shadow-sm border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800">My Career Plan Kanban Board</h1>
-                    <p class="text-gray-600">Drag cards horizontally to change status, or vertically to change phase.</p>
+                    <h1 class="text-2xl font-bold text-gray-100">My Career Plan Kanban Board</h1>
+                    <p class="text-gray-300">Drag cards horizontally to change status, or vertically to change phase.</p>
                 </div>
                 <button id="add-task-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition shadow-sm">
                     + Add Task
@@ -177,14 +288,19 @@
                 <span class="close-button" id="modalClose">&times;</span>
             </div>
             <form id="task-form" class="space-y-4">
+                <div id="task-id-display" class="mb-2 p-2 bg-gray-700 border border-gray-600 rounded">
+                    <label class="block text-xs font-medium text-gray-300 uppercase mb-1">Task ID</label>
+                    <code class="text-sm font-mono text-gray-100" id="modal-task-id">-</code>
+                </div>
+                
                 <div>
-                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Title</label>
-                    <input type="text" id="modal-title-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                    <label class="block text-sm font-medium text-gray-300 uppercase mb-1">Title</label>
+                    <input type="text" id="modal-title-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Status</label>
-                    <select id="modal-status-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                    <label class="block text-sm font-medium text-gray-300 uppercase mb-1">Status</label>
+                    <select id="modal-status-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
                         <option value="To Do">To Do</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Done">Done</option>
@@ -192,40 +308,40 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Epic</label>
-                    <input type="text" id="modal-epic-input" list="epic-datalist" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                    <label class="block text-sm font-medium text-gray-300 uppercase mb-1">Epic</label>
+                    <input type="text" id="modal-epic-input" list="epic-datalist" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
                     <datalist id="epic-datalist">
                     </datalist>
-                    <p class="mt-1 text-xs text-gray-500">Type to create a new epic or select from existing ones</p>
+                    <p class="mt-1 text-xs text-gray-400">Type to create a new epic or select from existing ones</p>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Start Date</label>
-                        <input type="date" id="modal-start-date-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                        <label class="block text-sm font-medium text-gray-300 uppercase mb-1">Start Date</label>
+                        <input type="date" id="modal-start-date-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Due Date</label>
-                        <input type="date" id="modal-due-date-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
+                        <label class="block text-sm font-medium text-gray-300 uppercase mb-1">Due Date</label>
+                        <input type="date" id="modal-due-date-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" required>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Details</label>
-                    <textarea id="modal-details-input" rows="4" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></textarea>
+                    <label class="block text-sm font-medium text-gray-300 uppercase mb-1">Details</label>
+                    <textarea id="modal-details-input" rows="4" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"></textarea>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-500 uppercase mb-1">Dependencies</label>
-                    <select id="modal-dependencies-select" multiple class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" style="min-height: 100px;">
-                    </select>
-                    <p class="mt-1 text-xs text-gray-500">Hold Ctrl/Cmd to select multiple tasks</p>
+                    <label class="block text-sm font-medium text-gray-300 uppercase mb-1">Dependencies (Task IDs)</label>
+                    <input type="text" id="modal-dependencies-input" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-500 bg-gray-700 text-gray-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" placeholder="Enter task IDs separated by commas (e.g., p1-pandas, p1-tableau)">
+                    <p class="mt-1 text-xs text-gray-400">Enter task IDs separated by commas or spaces. Current task ID is shown at the top.</p>
+                    <div id="dependency-validation" class="mt-2 text-xs"></div>
                 </div>
 
                 <div class="flex gap-3 pt-4">
                     <button type="submit" id="modal-save-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition">Save</button>
                     <button type="button" id="modal-delete-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition" style="display: none;">Delete</button>
-                    <button type="button" id="modal-cancel-btn" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md transition">Cancel</button>
+                    <button type="button" id="modal-cancel-btn" class="flex-1 bg-gray-600 hover:bg-gray-500 text-gray-100 font-medium py-2 px-4 rounded-md transition">Cancel</button>
                 </div>
             </form>
         </div>
@@ -467,7 +583,9 @@
             const modalStartDateInput = document.getElementById('modal-start-date-input');
             const modalDueDateInput = document.getElementById('modal-due-date-input');
             const modalDetailsInput = document.getElementById('modal-details-input');
-            const modalDependenciesSelect = document.getElementById('modal-dependencies-select');
+            const modalDependenciesInput = document.getElementById('modal-dependencies-input');
+            const dependencyValidation = document.getElementById('dependency-validation');
+            const modalTaskId = document.getElementById('modal-task-id');
             let currentCard = null; // Store the card being edited in the modal
             let draggedCard = null; // Store the card being dragged
             let isCreatingNew = false; // Track if we're creating a new task
@@ -527,6 +645,7 @@
 
                 return `
                     <div class="kanban-card" draggable="true" data-id="${task.id}">
+                        <div class="card-id">ID: ${task.id}</div>
                         <div class="card-title">${task.title}</div>
                         <div class="card-meta">
                             <div><strong>Start:</strong> ${task.startDate}</div>
@@ -618,15 +737,60 @@
                 });
             }
 
-            function populateDependenciesDropdown(excludeTaskId = null) {
-                modalDependenciesSelect.innerHTML = '';
-                tasks.forEach(task => {
-                    if (task.id === excludeTaskId) return; // Don't allow self-dependency
-                    const option = document.createElement('option');
-                    option.value = task.id;
-                    option.textContent = task.title;
-                    modalDependenciesSelect.appendChild(option);
+            // Parse and validate dependency IDs from input string
+            function parseDependencyIds(inputString, currentTaskId = null) {
+                if (!inputString || !inputString.trim()) return [];
+                
+                // Split by comma or whitespace, trim, and filter empty strings
+                const ids = inputString
+                    .split(/[,\s]+/)
+                    .map(id => id.trim())
+                    .filter(id => id.length > 0);
+                
+                return ids;
+            }
+
+            function validateDependencyIds(ids, currentTaskId = null) {
+                const validIds = [];
+                const invalidIds = [];
+                const warnings = [];
+                
+                ids.forEach(id => {
+                    if (id === currentTaskId) {
+                        warnings.push(`${id} (self-reference - will be ignored)`);
+                        return;
+                    }
+                    const taskExists = tasks.find(t => t.id === id);
+                    if (taskExists) {
+                        validIds.push(id);
+                    } else {
+                        invalidIds.push(id);
+                    }
                 });
+                
+                return { validIds, invalidIds, warnings };
+            }
+
+            function updateDependencyValidation(ids, currentTaskId = null) {
+                if (ids.length === 0) {
+                    dependencyValidation.innerHTML = '';
+                    return;
+                }
+                
+                const validation = validateDependencyIds(ids, currentTaskId);
+                let html = '';
+                
+                if (validation.validIds.length > 0) {
+                    html += `<div class="text-green-600">✓ Valid IDs: ${validation.validIds.join(', ')}</div>`;
+                }
+                if (validation.invalidIds.length > 0) {
+                    html += `<div class="text-red-600">✗ Invalid IDs: ${validation.invalidIds.join(', ')}</div>`;
+                }
+                if (validation.warnings.length > 0) {
+                    html += `<div class="text-yellow-600">⚠ ${validation.warnings.join(', ')}</div>`;
+                }
+                
+                dependencyValidation.innerHTML = html;
             }
 
             function openModal(task = null) {
@@ -637,6 +801,7 @@
                     isCreatingNew = false;
                     currentCard = task;
                     document.getElementById('modal-title').textContent = 'Edit Task';
+                    modalTaskId.textContent = task.id;
                     modalTitleInput.value = task.title;
                     modalStatusSelect.value = task.status;
                     modalEpicInput.value = task.epic;
@@ -644,11 +809,9 @@
                     modalDueDateInput.value = task.dueDate;
                     modalDetailsInput.value = task.details;
                     
-                    populateDependenciesDropdown(task.id);
-                    // Select current dependencies
-                    Array.from(modalDependenciesSelect.options).forEach(option => {
-                        option.selected = task.dependencies.includes(option.value);
-                    });
+                    // Set dependencies as comma-separated IDs
+                    modalDependenciesInput.value = task.dependencies.join(', ');
+                    updateDependencyValidation(task.dependencies, task.id);
                     
                     modalDeleteBtn.style.display = 'block';
                 } else {
@@ -656,17 +819,15 @@
                     isCreatingNew = true;
                     currentCard = null;
                     document.getElementById('modal-title').textContent = 'Create New Task';
+                    modalTaskId.textContent = '(will be generated on save)';
                     modalTitleInput.value = '';
                     modalStatusSelect.value = 'To Do';
                     modalEpicInput.value = '';
                     modalStartDateInput.value = '';
                     modalDueDateInput.value = '';
                     modalDetailsInput.value = '';
-                    
-                    populateDependenciesDropdown();
-                    Array.from(modalDependenciesSelect.options).forEach(option => {
-                        option.selected = false;
-                    });
+                    modalDependenciesInput.value = '';
+                    dependencyValidation.innerHTML = '';
                     
                     modalDeleteBtn.style.display = 'none';
                 }
@@ -691,6 +852,13 @@
                 return newId;
             }
 
+            // Real-time validation for dependencies input
+            modalDependenciesInput.addEventListener('input', () => {
+                const inputValue = modalDependenciesInput.value;
+                const parsedIds = parseDependencyIds(inputValue, currentCard ? currentCard.id : null);
+                updateDependencyValidation(parsedIds, currentCard ? currentCard.id : null);
+            });
+
             // Form submission handler
             taskForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -701,13 +869,26 @@
                     return;
                 }
                 
-                const selectedDependencies = Array.from(modalDependenciesSelect.selectedOptions).map(opt => opt.value);
-                
                 const epic = modalEpicInput.value.trim();
                 if (!epic) {
                     alert('Epic is required');
                     return;
                 }
+                
+                // Parse and validate dependency IDs
+                const dependencyInput = modalDependenciesInput.value.trim();
+                const parsedIds = parseDependencyIds(dependencyInput, currentCard ? currentCard.id : null);
+                const validation = validateDependencyIds(parsedIds, currentCard ? currentCard.id : null);
+                
+                if (validation.invalidIds.length > 0) {
+                    const proceed = confirm(`Invalid task IDs detected: ${validation.invalidIds.join(', ')}\n\nDo you want to continue without these invalid dependencies?`);
+                    if (!proceed) {
+                        return;
+                    }
+                }
+                
+                // Use only valid IDs
+                const validDependencies = validation.validIds;
                 
                 if (isCreatingNew) {
                     // Create new task
@@ -719,7 +900,7 @@
                         startDate: modalStartDateInput.value,
                         dueDate: modalDueDateInput.value,
                         details: modalDetailsInput.value,
-                        dependencies: selectedDependencies
+                        dependencies: validDependencies
                     };
                     tasks.push(newTask);
                 } else if (currentCard) {
@@ -730,7 +911,7 @@
                     currentCard.startDate = modalStartDateInput.value;
                     currentCard.dueDate = modalDueDateInput.value;
                     currentCard.details = modalDetailsInput.value;
-                    currentCard.dependencies = selectedDependencies;
+                    currentCard.dependencies = validDependencies;
                 }
                 
                 saveTasksToStorage(tasks);
