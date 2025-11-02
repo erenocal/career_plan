@@ -256,6 +256,38 @@
         body.dark-mode .close-button:hover {
             color: #e5e5e5;
         }
+        
+        /* Board Tabs */
+        .board-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            white-space: nowrap;
+            font-size: 0.875rem;
+        }
+        
+        .board-tab {
+            background-color: #404040;
+            color: #a0a0a0;
+        }
+        
+        .board-tab:hover {
+            background-color: #4a4a4a;
+            color: #e5e5e5;
+        }
+        
+        .board-tab.active {
+            background-color: #4f46e5;
+            color: #ffffff;
+            border-color: #6366f1;
+            font-weight: 600;
+        }
+        
+        .board-tab.active:hover {
+            background-color: #4338ca;
+        }
     </style>
 </head>
 <body class="dark-mode">
@@ -263,11 +295,22 @@
     <!-- Header -->
     <header class="bg-gray-800 shadow-sm border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-100">My Career Plan Kanban Board</h1>
-                    <p class="text-gray-300">Drag cards horizontally to change status, or vertically to change phase.</p>
+            <div class="mb-4">
+                <h1 class="text-2xl font-bold text-gray-100">My Career Plan Kanban Board</h1>
+                <p class="text-gray-300 text-sm">Drag cards horizontally to change status, or vertically to change phase.</p>
+            </div>
+            
+            <!-- Board Tabs -->
+            <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                <div id="board-tabs" class="flex items-center gap-2 flex-1 min-w-0">
+                    <!-- Tabs will be dynamically generated here -->
                 </div>
+                <button id="new-board-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-3 rounded-md transition shadow-sm whitespace-nowrap flex-shrink-0">
+                    + New Board
+                </button>
+            </div>
+            
+            <div class="flex justify-end">
                 <button id="add-task-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition shadow-sm">
                     + Add Task
                 </button>
@@ -348,28 +391,124 @@
     </div>
 
     <script>
-        // --- localStorage Key ---
-        const STORAGE_KEY = 'career-plan-tasks';
+        // --- localStorage Keys ---
+        const OLD_STORAGE_KEY = 'career-plan-tasks';
+        const BOARDS_STORAGE_KEY = 'career-plan-boards';
+        const CURRENT_BOARD_KEY = 'career-plan-current-board';
 
-        // --- localStorage Functions ---
-        function saveTasksToStorage(tasksArray) {
+        // --- Board Management Functions ---
+        function saveBoardsToStorage(boardsArray) {
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(tasksArray));
+                localStorage.setItem(BOARDS_STORAGE_KEY, JSON.stringify(boardsArray));
             } catch (e) {
-                console.error('Error saving to localStorage:', e);
+                console.error('Error saving boards to localStorage:', e);
             }
         }
 
-        function loadTasksFromStorage() {
+        function loadBoardsFromStorage() {
             try {
-                const stored = localStorage.getItem(STORAGE_KEY);
+                const stored = localStorage.getItem(BOARDS_STORAGE_KEY);
                 if (stored) {
                     return JSON.parse(stored);
                 }
             } catch (e) {
-                console.error('Error loading from localStorage:', e);
+                console.error('Error loading boards from localStorage:', e);
             }
             return null;
+        }
+
+        function getCurrentBoardId() {
+            try {
+                return localStorage.getItem(CURRENT_BOARD_KEY);
+            } catch (e) {
+                console.error('Error getting current board ID:', e);
+            }
+            return null;
+        }
+
+        function setCurrentBoardId(boardId) {
+            try {
+                localStorage.setItem(CURRENT_BOARD_KEY, boardId);
+            } catch (e) {
+                console.error('Error setting current board ID:', e);
+            }
+        }
+
+        // --- Migration Function ---
+        function migrateOldDataToBoards() {
+            // Check if old format exists
+            try {
+                const oldTasks = localStorage.getItem(OLD_STORAGE_KEY);
+                if (oldTasks) {
+                    const tasks = JSON.parse(oldTasks);
+                    if (tasks && Array.isArray(tasks) && tasks.length > 0) {
+                        // Create default board with old tasks
+                        const today = new Date();
+                        const defaultBoard = {
+                            id: 'board-' + Date.now(),
+                            name: 'Career Plan',
+                            tasks: tasks,
+                            createdAt: today.toISOString()
+                        };
+                        
+                        // Save as new format
+                        saveBoardsToStorage([defaultBoard]);
+                        setCurrentBoardId(defaultBoard.id);
+                        
+                        // Optionally remove old data (or keep for safety)
+                        // localStorage.removeItem(OLD_STORAGE_KEY);
+                        
+                        return [defaultBoard];
+                    }
+                }
+            } catch (e) {
+                console.error('Error migrating old data:', e);
+            }
+            return null;
+        }
+
+        // --- Board Operations ---
+        function getCurrentBoard(boards) {
+            const currentBoardId = getCurrentBoardId();
+            if (!currentBoardId) return null;
+            return boards.find(b => b.id === currentBoardId);
+        }
+
+        function getCurrentBoardTasks(boards) {
+            const currentBoard = getCurrentBoard(boards);
+            return currentBoard ? currentBoard.tasks : [];
+        }
+
+        function saveCurrentBoard(boards, tasks) {
+            const currentBoardId = getCurrentBoardId();
+            if (!currentBoardId) return;
+            
+            const boardIndex = boards.findIndex(b => b.id === currentBoardId);
+            if (boardIndex !== -1) {
+                boards[boardIndex].tasks = tasks;
+                saveBoardsToStorage(boards);
+            }
+        }
+
+        function createNewBoard(name) {
+            const boards = loadBoardsFromStorage() || [];
+            const today = new Date();
+            const newBoard = {
+                id: 'board-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+                name: name || 'New Board',
+                tasks: [],
+                createdAt: today.toISOString()
+            };
+            boards.push(newBoard);
+            saveBoardsToStorage(boards);
+            return newBoard;
+        }
+
+        function switchBoard(boards, boardId) {
+            // Save current board state first (will be called before switching)
+            setCurrentBoardId(boardId);
+            const board = boards.find(b => b.id === boardId);
+            return board ? board.tasks : [];
         }
 
         // --- Default Data ---
@@ -543,12 +682,39 @@
             }
         ];
 
-        // --- Initialize Tasks ---
-        let tasks = loadTasksFromStorage();
-        if (!tasks || tasks.length === 0) {
-            tasks = defaultTasks;
-            saveTasksToStorage(tasks);
+        // --- Initialize Boards ---
+        let boards = loadBoardsFromStorage();
+        
+        // Migrate old format if it exists
+        if (!boards || boards.length === 0) {
+            const migratedBoards = migrateOldDataToBoards();
+            if (migratedBoards) {
+                boards = migratedBoards;
+            } else {
+                // Create default board with default tasks
+                const today = new Date();
+                const defaultBoard = {
+                    id: 'board-default-' + Date.now(),
+                    name: 'Career Plan',
+                    tasks: defaultTasks,
+                    createdAt: today.toISOString()
+                };
+                boards = [defaultBoard];
+                saveBoardsToStorage(boards);
+                setCurrentBoardId(defaultBoard.id);
+            }
         }
+        
+        // Ensure current board ID is set
+        let currentBoardId = getCurrentBoardId();
+        if (!currentBoardId || !boards.find(b => b.id === currentBoardId)) {
+            // Set first board as current
+            currentBoardId = boards[0].id;
+            setCurrentBoardId(currentBoardId);
+        }
+        
+        // Get current board's tasks
+        let tasks = getCurrentBoardTasks(boards);
 
         // --- Utility Functions ---
         function addDays(date, days) {
@@ -591,6 +757,69 @@
             let isCreatingNew = false; // Track if we're creating a new task
 
             const statuses = ['To Do', 'In Progress', 'Done'];
+            const boardTabsContainer = document.getElementById('board-tabs');
+            const newBoardBtn = document.getElementById('new-board-btn');
+            
+            // Refresh boards from storage (important after operations)
+            function refreshBoards() {
+                boards = loadBoardsFromStorage() || [];
+                currentBoardId = getCurrentBoardId();
+                tasks = getCurrentBoardTasks(boards);
+            }
+            
+            // Render board tabs
+            function renderBoardTabs() {
+                refreshBoards();
+                boardTabsContainer.innerHTML = '';
+                
+                boards.forEach(board => {
+                    const tab = document.createElement('button');
+                    tab.className = 'board-tab';
+                    if (board.id === currentBoardId) {
+                        tab.classList.add('active');
+                    }
+                    tab.textContent = board.name;
+                    tab.dataset.boardId = board.id;
+                    tab.addEventListener('click', () => {
+                        handleBoardSwitch(board.id);
+                    });
+                    boardTabsContainer.appendChild(tab);
+                });
+            }
+            
+            // Handle board switching
+            function handleBoardSwitch(boardId) {
+                // Save current board before switching
+                saveCurrentBoard(boards, tasks);
+                
+                // Switch to new board
+                tasks = switchBoard(boards, boardId);
+                currentBoardId = boardId;
+                
+                // Re-render everything
+                renderBoardTabs();
+                renderBoard();
+            }
+            
+            // Handle board creation
+            function handleCreateBoard() {
+                const boardName = prompt('Enter board name:', 'New Board');
+                if (boardName === null) return; // User cancelled
+                
+                const trimmedName = boardName.trim();
+                if (!trimmedName) {
+                    alert('Board name cannot be empty');
+                    return;
+                }
+                
+                // Save current board before creating new one
+                saveCurrentBoard(boards, tasks);
+                
+                // Create and switch to new board
+                const newBoard = createNewBoard(trimmedName);
+                refreshBoards();
+                handleBoardSwitch(newBoard.id);
+            }
             
             // Get epics dynamically
             function getEpics() {
@@ -702,8 +931,8 @@
                                 task.status = newStatus;
                                 task.epic = newEpic;
                                 
-                                // Save to localStorage
-                                saveTasksToStorage(tasks);
+                                // Save to current board
+                                saveCurrentBoard(boards, tasks);
                                 
                                 // Re-render the entire board to reflect the change
                                 renderBoard();
@@ -914,7 +1143,7 @@
                     currentCard.dependencies = validDependencies;
                 }
                 
-                saveTasksToStorage(tasks);
+                saveCurrentBoard(boards, tasks);
                 renderBoard();
                 closeModal();
             });
@@ -936,7 +1165,7 @@
                         tasks.splice(index, 1);
                     }
                     
-                    saveTasksToStorage(tasks);
+                    saveCurrentBoard(boards, tasks);
                     renderBoard();
                     closeModal();
                 }
@@ -948,6 +1177,11 @@
                 openModal(null); // Open modal for new task
             });
 
+            // New Board button handler
+            newBoardBtn.addEventListener('click', () => {
+                handleCreateBoard();
+            });
+
             modalClose.onclick = closeModal;
             modalCancelBtn.onclick = closeModal;
             window.onclick = function(event) {
@@ -957,6 +1191,7 @@
             }
             
             // Initial Render
+            renderBoardTabs();
             renderBoard();
         });
     </script>
