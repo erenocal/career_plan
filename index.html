@@ -394,12 +394,138 @@
             </form>
         </div>
     </div>
-
     <script>
-        // --- localStorage Keys ---
+        // --- Storage Configuration ---
+        const REMOTE_BOARD_ID = 'career-plan'; // stable id for this app
         const OLD_STORAGE_KEY = 'career-plan-tasks';
         const BOARDS_STORAGE_KEY = 'career-plan-boards';
         const CURRENT_BOARD_KEY = 'career-plan-current-board';
+
+        const SUPABASE_URL = 'https://itoyxevnlcsgwparljuz.supabase.co';
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0b3l4ZXZubGNzZ3dwYXJsanV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODYwMzcsImV4cCI6MjA3Nzc2MjAzN30.cY1_AtjTZ6tu4CJglDooh9pNErKGHLEbTy0fSX368vc";
+        
+        // Connection state management
+        let isOnline = navigator.onLine;
+        let supabase;
+        let supbaseConnected = false;
+
+        // Initialize Supabase client
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        } catch (error) {
+            console.error('Failed to initialize Supabase client:', error);
+        }
+
+        // Online/offline event handlers
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        async function handleOnline() {
+            isOnline = true;
+            // Try to sync when we come back online
+            try {
+                const connected = await checkSupabaseConnection();
+                if (connected) {
+                    supbaseConnected = true;
+                    await syncWithSupabase();
+                }
+            } catch (error) {
+                console.error('Failed to sync when coming online:', error);
+            }
+        }
+
+        function handleOffline() {
+            isOnline = false;
+            supbaseConnected = false;
+        }
+        
+        // Connection health check
+        async function checkSupabaseConnection() {
+            if (!supabase) return false;
+            try {
+                const { data, error } = await supabase
+                    .from('boards')
+                    .select('id')
+                    .limit(1);
+                    
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Supabase connection check failed:', error);
+                return false;
+            }
+        }
+        
+        // --- Supabase Data Functions ---
+        async function saveToSupabase(boardsData) {
+            if (!supabase) return false;
+            
+            try {
+                const { data, error } = await supabase
+                    .from('boards')
+                    .upsert({
+                        id: REMOTE_BOARD_ID,
+                        data: {
+                            boards: boardsData,
+                            currentBoardId: getCurrentBoardId()
+                        }
+                    }, {
+                        onConflict: 'id'
+                    });
+                
+                if (error) throw error;
+                return true;
+            } catch (error) {
+                console.error('Failed to save to Supabase:', error);
+                return false;
+            }
+        }
+
+        async function loadFromSupabase() {
+            if (!supabase) return null;
+            
+            try {
+                const { data, error } = await supabase
+                    .from('boards')
+                    .select('data')
+                    .eq('id', REMOTE_BOARD_ID)
+                    .single();
+                    
+                if (error) {
+                    if (error.code === 'PGRST116') {  // Record not found
+                        return null;
+                    }
+                    throw error;
+                }
+                
+                return data?.data;  // { boards: [...], currentBoardId: "..." }
+            } catch (error) {
+                console.error('Failed to load from Supabase:', error);
+                return null;
+            }
+        }
+        
+        // Sync state between localStorage and Supabase
+        async function syncWithSupabase() {
+            // First try to load from Supabase
+            const remoteData = await loadFromSupabase();
+            
+            if (remoteData) {
+                // Remote data exists, update localStorage
+                saveBoardsToStorage(remoteData.boards);
+                if (remoteData.currentBoardId) {
+                    setCurrentBoardId(remoteData.currentBoardId);
+                }
+                return true;
+            } else {
+                // No remote data, push localStorage to Supabase
+                const localBoards = loadBoardsFromStorage();
+                if (localBoards) {
+                    return await saveToSupabase(localBoards);
+                }
+            }
+            return false;
+        }
 
         // --- Board Management Functions ---
         async function saveBoardsToStorage(boardsArray) {
@@ -412,20 +538,40 @@
                     await migrateToSupabase();
                 }
             } catch (e) {
-                console.error('Error saving boards to localStorage:', e);
+                console.error('Error saving boards:', e);
+                // At least we saved to localStorage
+                return localStorage.getItem(BOARDS_STORAGE_KEY) !== null;
             }
         }
 
-        function loadBoardsFromStorage() {
+        async function loadBoardsFromStorage() {
             try {
+                let data = null;
+                
+                // If we're online, try Supabase first
+                if (isOnline && supabase) {
+                    try {
+                        const syncSuccessful = await syncWithSupabase();
+                        if (syncSuccessful) {
+                            // Clear sync flag if successful
+                            localStorage.removeItem('needs_sync');
+                        }
+                    } catch (syncError) {
+                        console.error('Failed to sync with Supabase:', syncError);
+                    }
+                }
+                
+                // Always fall back to localStorage
                 const stored = localStorage.getItem(BOARDS_STORAGE_KEY);
                 if (stored) {
-                    return JSON.parse(stored);
+                    data = JSON.parse(stored);
                 }
+                
+                return data;
             } catch (e) {
-                console.error('Error loading boards from localStorage:', e);
+                console.error('Error loading boards:', e);
+                return null;
             }
-            return null;
         }
 
         function getCurrentBoardId() {
@@ -437,9 +583,16 @@
             return null;
         }
 
-        function setCurrentBoardId(boardId) {
+        async function setCurrentBoardId(boardId) {
             try {
+                // Save to localStorage
                 localStorage.setItem(CURRENT_BOARD_KEY, boardId);
+                
+                // Save current state to Supabase
+                const boards = loadBoardsFromStorage();
+                if (boards) {
+                    await saveToSupabase(boards);
+                }
             } catch (e) {
                 console.error('Error setting current board ID:', e);
             }
@@ -694,38 +847,101 @@
         ];
 
         // --- Initialize Boards ---
-        let boards = loadBoardsFromStorage();
+        let boards = [];
+        let tasks = [];
         
-        // Migrate old format if it exists
-        if (!boards || boards.length === 0) {
-            const migratedBoards = migrateOldDataToBoards();
-            if (migratedBoards) {
-                boards = migratedBoards;
-            } else {
-                // Create default board with default tasks
-                const today = new Date();
-                const defaultBoard = {
-                    id: 'board-default-' + Date.now(),
-                    name: 'Career Plan',
-                    tasks: defaultTasks,
-                    createdAt: today.toISOString()
-                };
-                boards = [defaultBoard];
-                saveBoardsToStorage(boards);
-                setCurrentBoardId(defaultBoard.id);
+        // Async initialization function
+        async function initializeBoards() {
+            boards = await loadBoardsFromStorage();
+            
+            // Migrate old format if it exists
+            if (!boards || boards.length === 0) {
+                const migratedBoards = migrateOldDataToBoards();
+                if (migratedBoards) {
+                    boards = migratedBoards;
+                } else {
+                    // Create default board with default tasks
+                    const today = new Date();
+                    const defaultBoard = {
+                        id: 'board-default-' + Date.now(),
+                        name: 'Career Plan',
+                        tasks: defaultTasks,
+                        createdAt: today.toISOString()
+                    };
+                    boards = [defaultBoard];
+                    await saveBoardsToStorage(boards);
+                    await setCurrentBoardId(defaultBoard.id);
+                }
+            }
+            
+            // Ensure current board ID is set
+            let currentBoardId = getCurrentBoardId();
+            if (!currentBoardId || !boards.find(b => b.id === currentBoardId)) {
+                // Set first board as current
+                currentBoardId = boards[0].id;
+                await setCurrentBoardId(currentBoardId);
+            }
+            
+            // Get current board's tasks
+            tasks = getCurrentBoardTasks(boards);
+            
+            // Initial render
+            renderBoardTabs();
+            renderBoard();
+        }
+        
+        // Migration utility
+        async function migrateToSupabase() {
+            // Only proceed if we have a Supabase connection
+            if (!supabase) {
+                console.log('Skipping migration: Supabase not available');
+                return false;
+            }
+
+            try {
+                // Check if we've already migrated
+                const migrationFlag = localStorage.getItem('supabase_migration_completed');
+                if (migrationFlag === 'true') {
+                    console.log('Migration already completed');
+                    return true;
+                }
+
+                // Check if there's existing data in Supabase
+                const existingData = await loadFromSupabase();
+                if (existingData) {
+                    console.log('Remote data exists, no migration needed');
+                    localStorage.setItem('supabase_migration_completed', 'true');
+                    return true;
+                }
+
+                // Get all local data
+                const localBoards = loadBoardsFromStorage();
+                const currentBoardId = getCurrentBoardId();
+
+                if (localBoards && localBoards.length > 0) {
+                    // Attempt to migrate data to Supabase
+                    const success = await saveToSupabase(localBoards);
+                    if (success) {
+                        localStorage.setItem('supabase_migration_completed', 'true');
+                        console.log('Migration completed successfully');
+                        return true;
+                    }
+                }
+
+                return false;
+            } catch (error) {
+                console.error('Migration failed:', error);
+                return false;
             }
         }
-        
-        // Ensure current board ID is set
-        let currentBoardId = getCurrentBoardId();
-        if (!currentBoardId || !boards.find(b => b.id === currentBoardId)) {
-            // Set first board as current
-            currentBoardId = boards[0].id;
-            setCurrentBoardId(currentBoardId);
-        }
-        
-        // Get current board's tasks
-        let tasks = getCurrentBoardTasks(boards);
+
+        // Start initialization with migration
+        initializeBoards()
+            .then(() => migrateToSupabase())
+            .catch(error => {
+                console.error('Failed to initialize boards:', error);
+                alert('Failed to load boards. Please check your connection and refresh the page.');
+            });
 
         // --- Utility Functions ---
         function addDays(date, days) {
@@ -1100,7 +1316,7 @@
             });
 
             // Form submission handler
-            taskForm.addEventListener('submit', (e) => {
+            taskForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
                 const title = modalTitleInput.value.trim();
@@ -1130,33 +1346,41 @@
                 // Use only valid IDs
                 const validDependencies = validation.validIds;
                 
-                if (isCreatingNew) {
-                    // Create new task
-                    const newTask = {
-                        id: generateTaskId(),
-                        title: title,
-                        epic: epic,
-                        status: modalStatusSelect.value,
-                        startDate: modalStartDateInput.value,
-                        dueDate: modalDueDateInput.value,
-                        details: modalDetailsInput.value,
-                        dependencies: validDependencies
-                    };
-                    tasks.push(newTask);
-                } else if (currentCard) {
-                    // Update existing task
-                    currentCard.title = title;
-                    currentCard.epic = epic;
-                    currentCard.status = modalStatusSelect.value;
-                    currentCard.startDate = modalStartDateInput.value;
-                    currentCard.dueDate = modalDueDateInput.value;
-                    currentCard.details = modalDetailsInput.value;
-                    currentCard.dependencies = validDependencies;
+                try {
+                    if (isCreatingNew) {
+                        // Create new task
+                        const newTask = {
+                            id: generateTaskId(),
+                            title: title,
+                            epic: epic,
+                            status: modalStatusSelect.value,
+                            startDate: modalStartDateInput.value,
+                            dueDate: modalDueDateInput.value,
+                            details: modalDetailsInput.value,
+                            dependencies: validDependencies
+                        };
+                        tasks.push(newTask);
+                    } else if (currentCard) {
+                        // Update existing task
+                        currentCard.title = title;
+                        currentCard.epic = epic;
+                        currentCard.status = modalStatusSelect.value;
+                        currentCard.startDate = modalStartDateInput.value;
+                        currentCard.dueDate = modalDueDateInput.value;
+                        currentCard.details = modalDetailsInput.value;
+                        currentCard.dependencies = validDependencies;
+                    }
+                    
+                    // Save to both localStorage and Supabase
+                    await saveCurrentBoard(boards, tasks);
+                    renderBoard();
+                    closeModal();
+                } catch (error) {
+                    console.error('Failed to save task:', error);
+                    alert('Failed to save task. Your changes are stored locally but may not be synced.');
+                    renderBoard();
+                    closeModal();
                 }
-                
-                saveCurrentBoard(boards, tasks);
-                renderBoard();
-                closeModal();
             });
 
             // Delete handler

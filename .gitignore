@@ -11,3 +11,10 @@
 # Logs
 *.log
 
+# Local Dev
+*.env
+.env.local
+.env.*.local
+
+# Database
+config.js
