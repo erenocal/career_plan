@@ -1,0 +1,20 @@
+# Career Plan Kanban Board
+
+> A dynamic, single-page Kanban board application for tracking career development tasks across multiple phases. Built as a vanilla JavaScript application with full CRUD operations, localStorage persistence, and drag-and-drop functionality. Designed for GitHub Pages hosting.
+
+This application provides a Kanban-style interface for managing career development tasks organized into phases (epics) and status columns (To Do, In Progress, Done). Tasks can be dragged horizontally to change status or vertically to change phase/epic.
+
+Key features:
+- **Full CRUD operations**: Create, read, update, and delete tasks with a comprehensive modal form
+- **localStorage persistence**: All changes are automatically saved to browser localStorage and persist across page reloads
+- **Drag-and-drop**: Tasks can be moved between status columns and epic swimlanes
+- **Task dependencies**: Tasks can depend on other tasks, with visual indicators and automatic cleanup on deletion
+- **Dynamic epic creation**: Users can create new epics/phases on the fly or select from existing ones
+- **Responsive design**: Built with Tailwind CSS for a clean, modern interface
+
+The application uses vanilla JavaScript with no external dependencies except Tailwind CSS (loaded via CDN). All data is stored locally in the browser using localStorage, making it ideal for personal career planning that doesn't require server-side infrastructure.
+
+## Main Application
+
+- [index.html](index.html): Single-file application containing all HTML, CSS, and JavaScript. This is a self-contained application with no build step required.
+
