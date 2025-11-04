@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Career Plan Kanban Board</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
+    <script src="supabase-migration.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -310,7 +312,10 @@
                 </button>
             </div>
             
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2">
+                <button id="sync-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition shadow-sm">
+                    ↻ Sync with Database
+                </button>
                 <button id="add-task-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition shadow-sm">
                     + Add Task
                 </button>
@@ -397,9 +402,15 @@
         const CURRENT_BOARD_KEY = 'career-plan-current-board';
 
         // --- Board Management Functions ---
-        function saveBoardsToStorage(boardsArray) {
+        async function saveBoardsToStorage(boardsArray) {
             try {
+                // Save to localStorage
                 localStorage.setItem(BOARDS_STORAGE_KEY, JSON.stringify(boardsArray));
+                
+                // If Supabase is available, sync automatically
+                if (typeof supabase !== 'undefined' && typeof migrateToSupabase === 'function') {
+                    await migrateToSupabase();
+                }
             } catch (e) {
                 console.error('Error saving boards to localStorage:', e);
             }
@@ -1190,6 +1201,31 @@
                 }
             }
             
+            // Sync button handler
+            const syncBtn = document.getElementById('sync-btn');
+            syncBtn.addEventListener('click', async () => {
+                if (typeof supabase === 'undefined' || typeof migrateToSupabase !== 'function') {
+                    alert('Supabase is not initialized. Please make sure you have the correct configuration.');
+                    return;
+                }
+                
+                try {
+                    syncBtn.disabled = true;
+                    syncBtn.innerHTML = '↻ Syncing...';
+                    await migrateToSupabase();
+                    syncBtn.innerHTML = '✓ Synced!';
+                    setTimeout(() => {
+                        syncBtn.disabled = false;
+                        syncBtn.innerHTML = '↻ Sync with Database';
+                    }, 2000);
+                } catch (error) {
+                    console.error('Error syncing with Supabase:', error);
+                    alert('Error syncing with database. Check console for details.');
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = '↻ Sync with Database';
+                }
+            });
+
             // Initial Render
             renderBoardTabs();
             renderBoard();
