@@ -389,14 +389,15 @@
             </form>
         </div>
     </div>
-    <script src="config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // --- Storage Configuration ---
         const REMOTE_BOARD_ID = 'career-plan'; // stable id for this app
         const OLD_STORAGE_KEY = 'career-plan-tasks';
         const BOARDS_STORAGE_KEY = 'career-plan-boards';
         const CURRENT_BOARD_KEY = 'career-plan-current-board';
+
+        const SUPABASE_URL = process.env.SUPABASE_URL;
+        const SUPABASE_ANON = process.env.SUPABASE_ANON;
         
         // Connection state management
         let isOnline = navigator.onLine;
@@ -405,7 +406,7 @@
 
         // Initialize Supabase client
         try {
-            supabase = window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON);
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
         } catch (error) {
             console.error('Failed to initialize Supabase client:', error);
         }
