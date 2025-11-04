@@ -390,14 +390,15 @@
         </div>
     </div>
     <script>
+        require('dotenv').config();
         // --- Storage Configuration ---
         const REMOTE_BOARD_ID = 'career-plan'; // stable id for this app
         const OLD_STORAGE_KEY = 'career-plan-tasks';
         const BOARDS_STORAGE_KEY = 'career-plan-boards';
         const CURRENT_BOARD_KEY = 'career-plan-current-board';
 
-        const SUPABASE_URL = process.env.SUPABASE_URL;
-        const SUPABASE_ANON = process.env.SUPABASE_ANON;
+        const SUPABASE_URL = 'https://itoyxevnlcsgwparljuz.supabase.co';
+        const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0b3l4ZXZubGNzZ3dwYXJsanV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODYwMzcsImV4cCI6MjA3Nzc2MjAzN30.cY1_AtjTZ6tu4CJglDooh9pNErKGHLEbTy0fSX368vc";
         
         // Connection state management
         let isOnline = navigator.onLine;
